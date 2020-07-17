@@ -1,6 +1,7 @@
 from room import Room
 from player import Player
 from world import World
+from collections import deque
 
 import random
 from ast import literal_eval
@@ -31,7 +32,7 @@ traversal_path = []
 visited = set()
 rooms = {}
 current_room = world.starting_room
-previous_room = None
+stack = deque()
 
 # Returns the opposite direction to the passed direction
 def opposite_direction(direction):
@@ -51,95 +52,56 @@ def set_room_directions(room):
     for exit in exits:
         rooms[room.id][exit] = "?"
 
-def next_direction(room):
-    possible_directions = []
-    if "?" in rooms[room.id].values():
-        for connection in rooms[room.id]:
-            if rooms[room.id][connection] == '?':
-                possible_directions.append(connection)
-    else:
-        possible_directions = list(rooms[room.id].keys())
-    return random.choice(possible_directions)
-
-def edit_connection(next_room, previous_room):
-    rooms[previous_room.id][direction] = next_room.id
-    opposite = opposite_direction(direction)
-    rooms[next_room.id][opposite] = previous_room.id
-
-def find_last_unexhausted_room(current_room):
-    room = current_room
-    distance_to_room = -1
-    directions_to_append = []
-    while '?' not in rooms[room.id].values():
-        if abs(distance_to_room) >= len(traversal_path):
-            break
-        previous_direction = traversal_path[distance_to_room]
-        opposite = opposite_direction(previous_direction)
-        directions_to_append.append(opposite)
-        room = room.get_room_in_direction(opposite)
-        distance_to_room -= 1
-    traversal_path.extend(directions_to_append)
-    return room
-
+# while True:
+#     traversal_path = []
+#     visited = set()
+#     rooms = {}
+#     player.current_room = world.starting_room
+#     stack = deque()
 # Set initial room's directions entry
 set_room_directions(current_room)
 
-# Start main section
-# Loop through until short enough path is found
-while True:
-    traversal_path = []
-    visited = set()
-    current_room = world.starting_room
-
-    # Loop til all rooms have been traversed
-    while len(visited) < len(room_graph):
-        # Add to visited
-        visited.add(current_room)
-
-        # Test if room has any untravelled connections
-        if '?' not in rooms[current_room.id].values():
-            current_room = find_last_unexhausted_room(current_room)
-            continue
-
-        # Set direction
-        direction = next_direction(current_room)
-        traversal_path.append(direction)
-
-        # Set previous room to current room and current room to next room
-        previous_room = current_room
-        current_room = current_room.get_room_in_direction(direction)
-
-        # Set next room's directions entry
-        set_room_directions(current_room)
-
-        # Set connections between previous room and next room
-        edit_connection(current_room, previous_room)
-
-    print(len(traversal_path))
-    if len(traversal_path) < 2000:
-        break
-
-
-# while len(visited) < len(room_graph):
-#     exits = current_room.get_exits()
-#     if len(traversal_path) > 0 and len(exits) > 1:
-#         exits.remove(opposite_direction(traversal_path[-1]))
-#     direction = random.choice(exits)
-#     traversal_path.append(direction)
-#     visited.add(current_room.id)
-#     current_room = current_room.get_room_in_direction(direction)
-#
+while len(visited) < 500:
+    # Set current room to player.current_room
+    current_room = player.current_room
+    # Add current room to visited
+    visited.add(current_room)
+    # Get neighboring rooms
+    possible_rooms = rooms[current_room.id]
+    # Create empty list to store neighboring rooms not visited
+    not_visited = []
+    # Add exits that have not been explored to not_visited array
+    for exit in current_room.get_exits():
+        if possible_rooms[exit] == '?':
+            not_visited.append(exit)
+    # If any exits are not visited, add to stack and traversal_path, and travel in first direction not visited already
+    if len(not_visited) > 0:
+        player.travel(not_visited[0])
+        stack.append(not_visited[0] )
+        traversal_path.append(not_visited[0])
+        # If current_room not in rooms dictionary, add to dictionary
+        if player.current_room.id not in rooms:
+            set_room_directions(player.current_room)
+        # Set new connections
+        rooms[player.current_room.id][opposite_direction(not_visited[0])] = current_room.id
+        rooms[current_room.id][not_visited[0]] = player.current_room.id
+    # Otherwise, if stack has rooms, travel back a room
+    else:
+        if len(stack) > 0:
+            last_direction = stack.pop()
+            opposite = opposite_direction(last_direction)
+            player.travel(opposite)
+            traversal_path.append(opposite)
 
 
 
 
 
 traversal_path.pop()
-
-
-
-
+print(len(traversal_path))
 print(traversal_path)
+
+
 # TRAVERSAL TEST
 visited_rooms = set()
 player.current_room = world.starting_room
