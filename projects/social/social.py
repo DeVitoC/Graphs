@@ -83,11 +83,9 @@ class SocialGraph:
             end_user = path[-1]
 
             if end_user not in visited:
-                # if end_user == destination_vertex:
-                #     return path
-                visited.add(end_user)
+                visited[end_user] = path
 
-                for next_user in self.get_neighbors(end_user):
+                for next_user in self.friendships[end_user]:
                     new_path = list(path)
                     new_path.append(next_user)
                     queue.enqueue(new_path)
